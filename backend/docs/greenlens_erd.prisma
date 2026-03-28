@@ -1,0 +1,27 @@
+// Prisma-like schema for Eraser ERD generation
+
+model users {
+  id       Int     @id
+  username String
+  email    String?
+  scans    scans[] @relation("users_scans_user_id")
+}
+
+model scans {
+  id         Int      @id
+  user_id    users    @relation("users_scans_user_id")
+  location   String
+  scanned_at DateTime
+  image      String
+  result     results? @relation("scans_results_scan_id")
+}
+
+model results {
+  id             Int      @id
+  scan_id        scans    @relation("scans_results_scan_id")
+  diagnosis      String
+  recommendation String
+  created_at     DateTime
+
+  @@unique([scan_id], name: "results_scan_id_unique")
+}
