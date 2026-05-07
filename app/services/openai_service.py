@@ -5,6 +5,8 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
+from app.services.web_search_service import search_disease_links
+
 load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -42,3 +44,9 @@ def analyze_plant_image(image_bytes, prompt_text):
     content = response.choices[0].message.content
 
     return json.loads(content)
+
+    diagnosis = result.get("diagnosis")
+
+    real_links = search_disease_links(diagnosis)
+
+    result["links"] = real_links
