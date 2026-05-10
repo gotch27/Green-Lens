@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import mimetypes
 from typing import Any
 
 import requests
@@ -32,7 +33,7 @@ def analyze_image(image_file) -> dict[str, Any]:
         "image": (
             image_file.name,
             image_file,
-            getattr(image_file, "content_type", "application/octet-stream"),
+            get_image_content_type(image_file),
         )
     }
 
@@ -54,6 +55,16 @@ def analyze_image(image_file) -> dict[str, Any]:
         raise InvalidMLResponse("Invalid ML response.") from exc
 
     return validate_ml_payload(payload)
+
+
+def get_image_content_type(image_file) -> str:
+    content_type = getattr(image_file, "content_type", None)
+
+    if content_type:
+        return content_type
+
+    guessed_type, _ = mimetypes.guess_type(image_file.name)
+    return guessed_type or "application/octet-stream"
 
 
 def validate_ml_payload(payload: dict[str, Any]) -> dict[str, Any]:

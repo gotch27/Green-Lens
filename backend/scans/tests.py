@@ -2,12 +2,14 @@ import atexit
 import shutil
 import tempfile
 from io import BytesIO
+from unittest.mock import Mock
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from PIL import Image
 
+from . import ml_client
 from .ml_client import MLServiceUnavailable
 from .models import Result, Scan
 
@@ -53,6 +55,23 @@ class HealthCheckTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok", "message": "Server is active"})
+
+
+@override_settings(ML_SERVICE_URL="http://ml-service:8001", ML_SERVICE_TIMEOUT_SECONDS=5)
+class MLClientTests(TestCase):
+    @patch("scans.ml_client.requests.post")
+    def test_analyze_image_guesses_content_type_for_saved_image(self, post):
+        response = Mock()
+        response.status_code = 200
+        response.json.return_value = ml_payload()
+        post.return_value = response
+        image_file = BytesIO(b"fake image bytes")
+        image_file.name = "scans/leaf.jpg"
+
+        ml_client.analyze_image(image_file)
+
+        files = post.call_args.kwargs["files"]
+        self.assertEqual(files["image"][2], "image/jpeg")
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
