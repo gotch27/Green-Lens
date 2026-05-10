@@ -9,18 +9,26 @@ model users {
 
 model scans {
   id         Int      @id
-  user_id    users    @relation("users_scans_user_id")
-  location   String
+  user_id    users?   @relation("users_scans_user_id")
+  city       String
   scanned_at DateTime
   image      String
+  temperature Float?
+  humidity    Int?
+  weather_recommendation String
   result     results? @relation("scans_results_scan_id")
 }
 
 model results {
   id             Int      @id
   scan_id        scans    @relation("scans_results_scan_id")
-  diagnosis      String
-  recommendation String
+  is_sick        Boolean
+  diagnosis      String?
+  description    String
+  characteristics Json
+  treatment_steps Json
+  links          Json
+  confidence     Float?
   created_at     DateTime
 
   @@unique([scan_id], name: "results_scan_id_unique")
