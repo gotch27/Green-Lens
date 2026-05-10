@@ -1,7 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from pathlib import Path
 
-from app.utils.validators import validate_image
-from app.services.openai_service import analyze_plant_image
+from fastapi import FastAPI, File, HTTPException, UploadFile
+
+from services.openai_service import analyze_plant_image
+from utils.validators import validate_image
+
+PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "diagnosis_prompt.txt"
 
 app = FastAPI()
 
@@ -14,25 +18,18 @@ def root():
 @app.post("/ml/analyze/")
 async def analyze_image(image: UploadFile = File(...)):
     try:
-        # validate image
         await validate_image(image)
-
-        # read image
         image_bytes = await image.read()
 
-        # load prompt
-        with open(
-            "app/prompts/diagnosis_prompt.txt",
-            "r",
-            encoding="utf-8"
-        ) as file:
+        with PROMPT_PATH.open("r", encoding="utf-8") as file:
             prompt_text = file.read()
 
-        # analyze image
         result = analyze_plant_image(image_bytes, prompt_text)
 
         return result
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,

@@ -5,13 +5,23 @@ from tavily import TavilyClient
 
 load_dotenv()
 
-client = TavilyClient(
-    api_key=os.getenv("TAVILY_API_KEY")
-)
+
+def get_tavily_client():
+    api_key = os.getenv("TAVILY_API_KEY")
+
+    if not api_key:
+        return None
+
+    return TavilyClient(api_key=api_key)
 
 
 def search_disease_links(diagnosis):
     if not diagnosis:
+        return []
+
+    client = get_tavily_client()
+
+    if client is None:
         return []
 
     query = f"{diagnosis} plant disease treatment"

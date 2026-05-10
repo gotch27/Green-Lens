@@ -4,20 +4,25 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from app.models.diagnosis_schema import PlantDiagnosis
-from app.services.web_search_service import search_disease_links
+from models.diagnosis_schema import PlantDiagnosis
+from services.web_search_service import search_disease_links
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
+
+def get_openai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required to analyze plant images.")
+
+    return OpenAI(api_key=api_key)
 
 
 def analyze_plant_image(image_bytes, prompt_text):
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-    response = client.responses.parse(
+    response = get_openai_client().responses.parse(
         model="gpt-4.1-mini",
         input=[
             {
