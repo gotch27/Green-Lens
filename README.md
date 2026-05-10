@@ -27,7 +27,7 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 
 ML_SERVICE_URL=http://localhost:8001
-ML_SERVICE_TIMEOUT_SECONDS=5
+ML_SERVICE_TIMEOUT_SECONDS=60
 OPENWEATHERMAP_API_KEY=your_openweathermap_key
 WEATHER_TIMEOUT_SECONDS=4
 MAX_IMAGE_UPLOAD_SIZE=5242880
@@ -41,6 +41,13 @@ ML_SERVICE_URL=http://ml-service:8001
 ```
 
 So local Python can use `localhost`, while containers use service names on the Docker network.
+
+For the ML service, add these to `backend/.env` before running Compose:
+
+```env
+OPENAI_API_KEY=your_openai_key
+TAVILY_API_KEY=your_tavily_key
+```
 
 ### 2. Start everything
 
@@ -88,7 +95,7 @@ Password: greenlens
 Database: greenlens
 ```
 
-### 4. Future AI service container
+### 4. ML service container
 
 The backend already calls the AI service at:
 
@@ -96,23 +103,13 @@ The backend already calls the AI service at:
 http://ml-service:8001/ml/analyze/
 ```
 
-When the ML service is added, uncomment/add a service named `ml-service` in `docker-compose.yml`.
-Example shape:
+Compose now starts a service named `ml-service` from `./ml-service`, exposed on:
 
-```yaml
-ml-service:
-  build:
-    context: ./ml-service
-  restart: unless-stopped
-  environment:
-    OPENAI_API_KEY: ${OPENAI_API_KEY}
-  ports:
-    - "8001:8001"
-  command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+```text
+http://127.0.0.1:8001
 ```
 
-The important part is the service name: `ml-service`.
-Docker DNS will let Django reach it at `http://ml-service:8001`.
+Docker DNS lets Django reach it at `http://ml-service:8001`.
 
 ### 5. Apidog/Postman checks
 
