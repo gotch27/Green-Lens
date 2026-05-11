@@ -175,6 +175,8 @@ class ScanApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()[0]["id"], scan.id)
         self.assertIn("image_url", response.json()[0])
+        self.assertIn(f"/api/scans/{scan.id}/image/", response.json()[0]["image_url"])
+        self.assertNotIn("/media/", response.json()[0]["image_url"])
         self.assertNotIn("treatment_steps", response.json()[0])
 
     def test_authenticated_history_only_returns_own_scans(self):
@@ -250,6 +252,20 @@ class ScanApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
 
+    def test_scan_image_requires_owner(self):
+        owner = User.objects.create_user(username="owner", email="owner@example.com", password="password123")
+        other_user = User.objects.create_user(username="other", email="other@example.com", password="password123")
+        scan = self.create_scan(user=owner)
+
+        unauthenticated_response = self.client.get(f"/api/scans/{scan.id}/image/")
+        other_user_response = self.client.get(f"/api/scans/{scan.id}/image/", **self.auth_headers(other_user))
+        owner_response = self.client.get(f"/api/scans/{scan.id}/image/", **self.auth_headers(owner))
+
+        self.assertEqual(unauthenticated_response.status_code, 401)
+        self.assertEqual(other_user_response.status_code, 404)
+        self.assertEqual(owner_response.status_code, 200)
+        self.assertEqual(owner_response["Content-Type"], "image/jpeg")
+
     @patch("scans.views.get_weather_for_city")
     def test_weather_endpoint_uses_city(self, get_weather_for_city):
         get_weather_for_city.return_value = weather_payload("Bitola")
@@ -289,7 +305,7 @@ class AuthApiTests(TestCase):
                 {
                     "username": "farmer",
                     "email": "farmer@example.com",
-                    "password": "password123",
+                    "password": "StrongPlantPass123!",
                 }
             ),
             content_type="application/json",
@@ -322,7 +338,7 @@ class AuthApiTests(TestCase):
                 {
                     "username": "farmer2",
                     "email": "farmer@example.com",
-                    "password": "password123",
+                    "password": "StrongPlantPass123!",
                 }
             ),
             content_type="application/json",
@@ -330,6 +346,22 @@ class AuthApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": "Email already exists."})
+
+    def test_register_rejects_weak_password(self):
+        response = self.client.post(
+            "/api/auth/register/",
+            data=json.dumps(
+                {
+                    "username": "farmer",
+                    "email": "farmer@example.com",
+                    "password": "password123",
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("password", response.json())
 
     def test_me_returns_authenticated_user(self):
         user = User.objects.create_user(username="farmer", email="farmer@example.com", password="password123")
@@ -346,6 +378,7 @@ class AuthApiTests(TestCase):
         verify_oauth2_token.return_value = {
             "sub": "google-subject-1",
             "email": "farmer@example.com",
+            "email_verified": True,
             "given_name": "Geo",
             "family_name": "Farmer",
             "picture": "https://example.com/avatar.png",
@@ -364,12 +397,11 @@ class AuthApiTests(TestCase):
 
     @override_settings(GOOGLE_OAUTH_CLIENT_ID="google-client-id.apps.googleusercontent.com")
     @patch("scans.views.id_token.verify_oauth2_token")
-    def test_google_login_rejects_ambiguous_email_matches(self, verify_oauth2_token):
-        User.objects.create_user(username="farmer1", email="farmer@example.com", password="password123")
-        User.objects.create_user(username="farmer2", email="Farmer@Example.com", password="password123")
+    def test_google_login_rejects_unverified_email(self, verify_oauth2_token):
         verify_oauth2_token.return_value = {
             "sub": "google-subject-1",
             "email": "farmer@example.com",
+            "email_verified": False,
             "given_name": "Geo",
             "family_name": "Farmer",
             "picture": "https://example.com/avatar.png",
@@ -382,10 +414,7 @@ class AuthApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.json(),
-            {"error": "Multiple users already use this email. Resolve duplicates before continuing."},
-        )
+        self.assertEqual(response.json(), {"error": "Google email is not verified."})
 
     @override_settings(GOOGLE_OAUTH_CLIENT_ID="google-client-id.apps.googleusercontent.com")
     @patch("scans.views.id_token.verify_oauth2_token")

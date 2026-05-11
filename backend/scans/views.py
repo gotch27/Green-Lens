@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import mimetypes
 from secrets import token_urlsafe
 
 from PIL import Image, UnidentifiedImageError
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
-from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ObjectDoesNotExist, ValidationError as DjangoValidationError
+from django.core.files.storage import default_storage
+from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers, status
@@ -29,6 +33,10 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_password(self, value: str) -> str:
+        validate_password(value)
+        return value
 
 
 class LoginSerializer(serializers.Serializer):
@@ -103,6 +111,12 @@ def verify_google_id_token(token: str) -> dict:
     subject = payload.get("sub", "").strip()
     if not email or not subject:
         raise serializers.ValidationError({"error": "Google account payload is missing required fields."})
+    try:
+        validate_email(email)
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError({"error": "Google account payload has an invalid email."}) from exc
+    if payload.get("email_verified") is not True:
+        raise serializers.ValidationError({"error": "Google email is not verified."})
 
     return payload
 
@@ -177,11 +191,13 @@ def google_login(request):
     last_name = payload.get("family_name", "").strip()
     avatar_url = payload.get("picture", "").strip()
 
-    google_account = GoogleAccount.objects.select_related("user").filter(google_subject=subject).first()
-    user = google_account.user if google_account else get_unique_user_by_email(email)
-
     try:
         with transaction.atomic():
+            google_account = (
+                GoogleAccount.objects.select_for_update().select_related("user").filter(google_subject=subject).first()
+            )
+            user = google_account.user if google_account else get_unique_user_by_email(email)
+
             if user is None:
                 user = User.objects.create_user(
                     username=username_from_email(email),
@@ -291,6 +307,19 @@ def scan_report(request, scan_id):
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="greenlens-scan-{scan.id}.pdf"'
     return response
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def scan_image(request, scan_id):
+    scan = get_scan_or_404(scan_id, request)
+    if scan is None or not scan.image:
+        return Response({"error": "Scan not found."}, status=status.HTTP_404_NOT_FOUND)
+    if not default_storage.exists(scan.image.name):
+        return Response({"error": "Scan image not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    content_type = mimetypes.guess_type(scan.image.name)[0] or "application/octet-stream"
+    return FileResponse(default_storage.open(scan.image.name, "rb"), content_type=content_type)
 
 
 @api_view(["GET"])

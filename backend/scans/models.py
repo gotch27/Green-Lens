@@ -9,8 +9,6 @@ class Scan(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="scans",
-        null=True,
-        blank=True,
     )
     city = models.CharField(max_length=255, blank=True)
     scanned_at = models.DateTimeField(auto_now_add=True)
