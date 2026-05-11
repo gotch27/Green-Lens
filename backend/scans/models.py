@@ -7,7 +7,7 @@ User = get_user_model()
 class Scan(models.Model):
     user = models.ForeignKey(
         User,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name="scans",
         null=True,
         blank=True,
@@ -37,3 +37,14 @@ class Result(models.Model):
 
     def __str__(self) -> str:
         return f"Result for Scan #{self.scan_id}"
+
+
+class GoogleAccount(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="google_account")
+    google_subject = models.CharField(max_length=255, unique=True)
+    avatar_url = models.URLField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"Google account for {self.user.username}"
