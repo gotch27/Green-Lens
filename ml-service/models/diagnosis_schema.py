@@ -3,6 +3,8 @@ from typing import List, Optional
 
 
 class PlantDiagnosis(BaseModel):
+    is_plant: bool
+    non_plant_reason: Optional[str]
     is_sick: bool
     diagnosis: Optional[str]
     description: str

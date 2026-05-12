@@ -7,7 +7,7 @@ Green Lens - ИКТ
 
 ## Backend Docker setup
 
-The Django backend, PostgreSQL database, and database UI can run through Docker Compose.
+The React frontend, Django backend, PostgreSQL database, ML service, and database UI can run through Docker Compose.
 
 ### 1. Configure environment
 
@@ -27,6 +27,7 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 
 ML_SERVICE_URL=http://localhost:8001
+JWT_SIGNING_KEY=change-me-to-a-different-long-random-jwt-secret
 ML_SERVICE_TIMEOUT_SECONDS=60
 OPENWEATHERMAP_API_KEY=your_openweathermap_key
 WEATHER_TIMEOUT_SECONDS=4
@@ -60,6 +61,14 @@ The backend runs migrations automatically, then starts Django at:
 ```text
 http://127.0.0.1:8000
 ```
+
+The frontend runs at:
+
+```text
+http://127.0.0.1:5173
+```
+
+Inside Docker, the Vite dev server proxies `/api/*` to `http://backend:8000`. When running the frontend outside Docker with `npm run dev`, it proxies to `http://localhost:8000`.
 
 Health check:
 

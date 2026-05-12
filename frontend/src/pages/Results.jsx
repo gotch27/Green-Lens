@@ -1,0 +1,291 @@
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { downloadScanReport, getScanImageBlob } from '../api/scans';
+
+// Icons cycled across treatment steps (list[str], no titles from ML)
+const STEP_ICONS = ['🧪', '✂️', '🌱', '💊', '🔬', '📋'];
+
+function pct(confidence) {
+  return Math.round((confidence ?? 0) * 100);
+}
+
+function severityTag(isSick, confidence) {
+  if (!isSick) return { label: '✓ Здраво', cls: 'tag-green' };
+  const p = pct(confidence);
+  if (p >= 80) return { label: '🔴 Висока сериозност', cls: 'tag-red' };
+  if (p >= 50) return { label: '🟡 Средна сериозност', cls: 'tag-amber' };
+  return { label: '🟢 Ниска сериозност', cls: 'tag-green' };
+}
+
+function spreadRisk(weather) {
+  if (!weather || weather.humidity == null) return null;
+  if (weather.humidity > 70 && (weather.temperature ?? 0) > 18) return 'Висок';
+  if (weather.humidity > 50) return 'Умерен';
+  return 'Низок';
+}
+
+// ── Empty state ──────────────────────────────────────────────────────────────
+function NoResult() {
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">Резултати од <span>дијагноза</span></div>
+        <div className="page-sub">Нема податоци од скенирање</div>
+      </div>
+      <div className="glass-card" style={{ padding: 40, textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 14 }}>🌿</div>
+        <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
+          Сè уште нема дијагноза за приказ.<br />Прикачете фотографија од растение за да започнете.
+        </div>
+        <Link to="/scan" className="btn btn-primary">🔬 Скенирај растение</Link>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+export default function Results() {
+  const { state }  = useLocation();
+  const navigate   = useNavigate();
+  const barRef     = useRef(null);
+  const result     = state?.result;
+  const [imageSrc, setImageSrc] = useState(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+
+  // Animate confidence bar on mount
+  useEffect(() => {
+    if (!result || !barRef.current) return;
+    const id = setTimeout(() => {
+      if (barRef.current) barRef.current.style.width = `${pct(result.confidence)}%`;
+    }, 120);
+    return () => clearTimeout(id);
+  }, [result]);
+
+  useEffect(() => {
+    if (!result?.image_url) {
+      setImageSrc(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let objectUrl = null;
+    setImageFailed(false);
+
+    getScanImageBlob(result.image_url)
+      .then(blob => {
+        objectUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        setImageSrc(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setImageFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [result?.image_url]);
+
+  if (!result) return <NoResult />;
+
+  const confidencePct = pct(result.confidence);
+  const severity      = severityTag(result.is_sick, result.confidence);
+  const weather       = result.weather ?? null;
+  const risk          = spreadRisk(weather);
+  const isHealthy     = result.is_sick === false;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-title">Резултати од <span>дијагноза</span></div>
+        <div className="page-sub">
+          {isHealthy
+            ? 'ВИ проценка, препораки за нега и временски контекст'
+            : 'ВИ проценка, препораки за третман и временски контекст'}
+        </div>
+      </div>
+
+      <div className="results-grid">
+
+        {/* ── Left column ── */}
+        <div>
+
+          {/* Analysed image */}
+          <div
+            className="analyzed-img glass-card"
+            style={{ height: 260, flexDirection: 'column', gap: 8 }}
+          >
+            <div className="confidence-badge">{confidencePct}% сигурност</div>
+            {imageSrc ? (
+              <img
+                src={imageSrc}
+                alt="Анализирано растение"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <>
+                <span style={{ fontSize: 32 }}>🍃</span>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {imageFailed ? 'Не може да се вчита заштитената слика' : 'Се вчитува анализираната слика…'}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Action row */}
+          <div className="export-row">
+            <button
+              className="btn btn-ghost"
+              style={{ flex: 1, justifyContent: 'center' }}
+              disabled={reportLoading || !result.id}
+              onClick={async () => {
+                if (!result.id || reportLoading) return;
+                setReportLoading(true);
+                try {
+                  await downloadScanReport(result.id);
+                } finally {
+                  setReportLoading(false);
+                }
+              }}
+            >
+              {reportLoading ? '⏳ Се извезува…' : '📄 Извези PDF'}
+            </button>
+            <button
+              className="btn btn-ghost"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => navigate('/history')}
+            >
+              💾 Види историја
+            </button>
+          </div>
+
+          {/* Agrometeorological context */}
+          {weather && (
+            <div className="glass-card" style={{ marginTop: 14 }}>
+              <div className="weather-context">
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                  🌦 Агрометеоролошки контекст
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
+                  {weather.recommendation || 'Временските податоци се зачувани за ова скенирање'}
+                </div>
+                <div className="wc-grid">
+                  <div className="wc-item">
+                    <div className="wc-val">{risk ?? '—'}</div>
+                    <div className="wc-key">Ризик од ширење</div>
+                  </div>
+                  <div className="wc-item">
+                    <div className="wc-val">
+                      {weather.temperature != null ? `${weather.temperature}°C` : '—'}
+                    </div>
+                    <div className="wc-key">Температура</div>
+                  </div>
+                  <div className="wc-item">
+                    <div className="wc-val">
+                      {weather.humidity != null ? `${weather.humidity}%` : '—'}
+                    </div>
+                    <div className="wc-key">Влажност</div>
+                  </div>
+                  <div className="wc-item">
+                    <div className="wc-val">{weather.city || '—'}</div>
+                    <div className="wc-key">Локација</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Summary */}
+          {result.description && (
+            <div className="glass-card" style={{ marginTop: 12 }}>
+              <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+                  📋 Резиме за агроном
+                </div>
+                {result.description}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Right column ── */}
+        <div>
+
+          {/* Disease card */}
+          <div className="glass-card disease-card">
+            <div className="disease-name">
+              {result.is_sick
+                ? `Откриено: ${result.diagnosis ?? 'болест'}`
+                : (result.diagnosis ?? 'Растението изгледа здраво')}
+            </div>
+
+            {result.characteristics?.length > 0 && (
+              <div className="disease-sci">{result.characteristics[0]}</div>
+            )}
+
+            {/* Confidence bar */}
+            <div className="confidence-bar-wrap">
+              <div className="confidence-label">
+                <span>{isHealthy ? 'Сигурност на проценка' : 'Сигурност на откривање'}</span>
+                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{confidencePct}%</span>
+              </div>
+              <div className="confidence-bar">
+                <div ref={barRef} className="confidence-fill" style={{ width: 0 }} />
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="tag-row">
+              <span className={`tag ${severity.cls}`}>{severity.label}</span>
+              {risk === 'Висок'   && <span className="tag tag-amber">⚠ Се шири</span>}
+              {result.is_sick    && <span className="tag tag-green">✓ Може да се третира</span>}
+            </div>
+          </div>
+
+          {/* Treatment steps */}
+          {result.treatment_steps?.length > 0 && (
+            <>
+              <div className="section-label">
+                {isHealthy ? 'Препораки за нега и следење' : 'Препораки за третман'}
+              </div>
+              {result.treatment_steps.map((step, i) => (
+                <div key={i} className="glass-card rec-card">
+                  <div className="rec-header">
+                    {STEP_ICONS[i % STEP_ICONS.length]} {isHealthy ? 'Препорака' : 'Чекор'} {i + 1}
+                  </div>
+                  <div className="rec-body">{step}</div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Further reading */}
+          {result.links?.length > 0 && (
+            <div className="glass-card rec-card">
+              <div className="rec-header">🔗 Дополнително читање</div>
+              <div className="rec-body" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {result.links.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--accent)', wordBreak: 'break-all' }}
+                  >
+                    {url}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
