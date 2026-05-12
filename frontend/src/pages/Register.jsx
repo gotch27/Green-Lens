@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../api/auth';
+import { getApiErrorMessage } from '../utils/apiErrors';
 
 const inputStyle = {
   display: 'flex',
@@ -40,14 +41,7 @@ export default function Register() {
       await register(username, email, password);
       navigate('/', { replace: true });
     } catch (err) {
-      const data = err.response?.data;
-      const msg = data?.error
-        ?? data?.username?.[0]
-        ?? data?.email?.[0]
-        ?? data?.password?.[0]
-        ?? data?.detail
-        ?? 'Registration failed. Please try again.';
-      setError(msg);
+      setError(getApiErrorMessage(err, 'Регистрацијата не успеа. Обидете се повторно.', ['username', 'email', 'password']));
     } finally {
       setLoading(false);
     }
@@ -70,7 +64,7 @@ export default function Register() {
           <div className="logo-icon" style={{ width: 36, height: 36, fontSize: 18 }}>🌿</div>
           <div>
             <div className="logo-text" style={{ fontSize: 18 }}>GreenLens</div>
-            <div className="logo-sub">AI · Plant Analysis</div>
+            <div className="logo-sub">ВИ · Анализа на растенија</div>
           </div>
         </div>
 
@@ -78,9 +72,9 @@ export default function Register() {
         <div className="glass-card" style={{ padding: 32 }}>
           <div style={{ marginBottom: 24 }}>
             <div className="page-title" style={{ fontSize: 22, marginBottom: 4 }}>
-              Create <span>account</span>
+              Креирајте <span>сметка</span>
             </div>
-            <div className="page-sub">Join GreenLens as an agronomist</div>
+            <div className="page-sub">Приклучете се на GreenLens како агроном</div>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -91,7 +85,7 @@ export default function Register() {
               <input
                 style={inputFieldStyle}
                 type="text"
-                placeholder="Username"
+                placeholder="Корисничко име"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 required
@@ -105,7 +99,7 @@ export default function Register() {
               <input
                 style={inputFieldStyle}
                 type="email"
-                placeholder="Email address"
+                placeholder="Е-пошта"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -119,7 +113,7 @@ export default function Register() {
               <input
                 style={inputFieldStyle}
                 type="password"
-                placeholder="Password (min. 8 characters)"
+                placeholder="Лозинка (мин. 8 знаци)"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -150,7 +144,7 @@ export default function Register() {
               disabled={loading}
               style={{ justifyContent: 'center', padding: '11px 18px', marginTop: 4, opacity: loading ? 0.7 : 1 }}
             >
-              {loading ? '⏳ Creating account…' : '🌿 Create Account'}
+              {loading ? '⏳ Се креира сметка…' : '🌿 Креирај сметка'}
             </button>
           </form>
 
@@ -158,18 +152,18 @@ export default function Register() {
           <div className="divider" style={{ margin: '22px 0' }} />
 
           <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
-            Already have an account?{' '}
+            Веќе имате сметка?{' '}
             <Link
               to="/login"
               style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
             >
-              Sign in
+              Најавете се
             </Link>
           </div>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 18, fontSize: 11, color: 'var(--text-dim)' }}>
-          GreenLens AI · Plant Disease Detection Platform
+          GreenLens ВИ · Платформа за откривање болести кај растенија
         </div>
       </div>
     </div>

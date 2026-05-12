@@ -63,7 +63,7 @@ export async function downloadScanReport(id) {
   const url = URL.createObjectURL(data);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `greenlens-scan-${id}.pdf`;
+  link.download = `greenlens-izvestaj-${id}.pdf`;
   document.body.appendChild(link);
   link.click();
   link.remove();

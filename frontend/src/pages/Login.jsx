@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../api/auth';
+import { getApiErrorMessage } from '../utils/apiErrors';
 
 const inputStyle = {
   display: 'flex',
@@ -39,11 +40,7 @@ export default function Login() {
       await login(username, password);
       navigate('/', { replace: true });
     } catch (err) {
-      const msg = err.response?.data?.error
-        ?? err.response?.data?.detail
-        ?? err.response?.data?.non_field_errors?.[0]
-        ?? 'Invalid credentials. Please try again.';
-      setError(msg);
+      setError(getApiErrorMessage(err, 'Невалидни податоци за најава. Обидете се повторно.'));
     } finally {
       setLoading(false);
     }
@@ -66,7 +63,7 @@ export default function Login() {
           <div className="logo-icon" style={{ width: 36, height: 36, fontSize: 18 }}>🌿</div>
           <div>
             <div className="logo-text" style={{ fontSize: 18 }}>GreenLens</div>
-            <div className="logo-sub">AI · Plant Analysis</div>
+            <div className="logo-sub">ВИ · Анализа на растенија</div>
           </div>
         </div>
 
@@ -74,9 +71,9 @@ export default function Login() {
         <div className="glass-card" style={{ padding: 32 }}>
           <div style={{ marginBottom: 24 }}>
             <div className="page-title" style={{ fontSize: 22, marginBottom: 4 }}>
-              Welcome <span>back</span>
+              Добредојдовте <span>назад</span>
             </div>
-            <div className="page-sub">Sign in to your agronomist account</div>
+            <div className="page-sub">Најавете се на вашата сметка</div>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -87,7 +84,7 @@ export default function Login() {
               <input
                 style={inputFieldStyle}
                 type="text"
-                placeholder="Username"
+                placeholder="Корисничко име"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 required
@@ -101,7 +98,7 @@ export default function Login() {
               <input
                 style={inputFieldStyle}
                 type="password"
-                placeholder="Password"
+                placeholder="Лозинка"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -131,7 +128,7 @@ export default function Login() {
               disabled={loading}
               style={{ justifyContent: 'center', padding: '11px 18px', marginTop: 4, opacity: loading ? 0.7 : 1 }}
             >
-              {loading ? '⏳ Signing in…' : '🌿 Sign In'}
+              {loading ? '⏳ Се најавувате…' : '🌿 Најави се'}
             </button>
           </form>
 
@@ -140,12 +137,12 @@ export default function Login() {
 
           {/* Register link */}
           <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
-            Don't have an account?{' '}
+            Немате сметка?{' '}
             <Link
               to="/register"
               style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}
             >
-              Create one
+              Креирајте сметка
             </Link>
           </div>
         </div>
@@ -161,21 +158,21 @@ export default function Login() {
             textAlign: 'center',
           }}>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 8 }}>
-              DEV MODE — create an account first, then log in
+              РАЗВОЕН РЕЖИМ — прво креирајте сметка, потоа најавете се
             </div>
             <Link
               to="/register"
               className="btn btn-ghost"
               style={{ width: '100%', justifyContent: 'center', fontSize: 12 }}
             >
-              📝 Create Dev Account
+              📝 Креирај тест сметка
             </Link>
           </div>
         )}
 
         {/* Footer note */}
         <div style={{ textAlign: 'center', marginTop: 18, fontSize: 11, color: 'var(--text-dim)' }}>
-          GreenLens AI · Plant Disease Detection Platform
+          GreenLens ВИ · Платформа за откривање болести кај растенија
         </div>
       </div>
     </div>

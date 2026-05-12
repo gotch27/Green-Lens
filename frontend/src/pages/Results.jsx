@@ -10,18 +10,18 @@ function pct(confidence) {
 }
 
 function severityTag(isSick, confidence) {
-  if (!isSick) return { label: '✓ Healthy', cls: 'tag-green' };
+  if (!isSick) return { label: '✓ Здраво', cls: 'tag-green' };
   const p = pct(confidence);
-  if (p >= 80) return { label: '🔴 High Severity', cls: 'tag-red' };
-  if (p >= 50) return { label: '🟡 Medium Severity', cls: 'tag-amber' };
-  return { label: '🟢 Low Severity', cls: 'tag-green' };
+  if (p >= 80) return { label: '🔴 Висока сериозност', cls: 'tag-red' };
+  if (p >= 50) return { label: '🟡 Средна сериозност', cls: 'tag-amber' };
+  return { label: '🟢 Ниска сериозност', cls: 'tag-green' };
 }
 
 function spreadRisk(weather) {
   if (!weather || weather.humidity == null) return null;
-  if (weather.humidity > 70 && (weather.temperature ?? 0) > 18) return 'High';
-  if (weather.humidity > 50) return 'Moderate';
-  return 'Low';
+  if (weather.humidity > 70 && (weather.temperature ?? 0) > 18) return 'Висок';
+  if (weather.humidity > 50) return 'Умерен';
+  return 'Низок';
 }
 
 // ── Empty state ──────────────────────────────────────────────────────────────
@@ -29,15 +29,15 @@ function NoResult() {
   return (
     <div>
       <div className="page-header">
-        <div className="page-title">Diagnosis <span>Results</span></div>
-        <div className="page-sub">No scan data found</div>
+        <div className="page-title">Резултати од <span>дијагноза</span></div>
+        <div className="page-sub">Нема податоци од скенирање</div>
       </div>
       <div className="glass-card" style={{ padding: 40, textAlign: 'center' }}>
         <div style={{ fontSize: 40, marginBottom: 14 }}>🌿</div>
         <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.6 }}>
-          No diagnosis to display yet.<br />Upload a plant photo to get started.
+          Сè уште нема дијагноза за приказ.<br />Прикачете фотографија од растение за да започнете.
         </div>
-        <Link to="/scan" className="btn btn-primary">🔬 Scan a Plant</Link>
+        <Link to="/scan" className="btn btn-primary">🔬 Скенирај растение</Link>
       </div>
     </div>
   );
@@ -101,8 +101,8 @@ export default function Results() {
   return (
     <div>
       <div className="page-header">
-        <div className="page-title">Diagnosis <span>Results</span></div>
-        <div className="page-sub">AI prediction, treatment guidance, and weather context</div>
+        <div className="page-title">Резултати од <span>дијагноза</span></div>
+        <div className="page-sub">ВИ проценка, препораки за третман и временски контекст</div>
       </div>
 
       <div className="results-grid">
@@ -115,18 +115,18 @@ export default function Results() {
             className="analyzed-img glass-card"
             style={{ height: 260, flexDirection: 'column', gap: 8 }}
           >
-            <div className="confidence-badge">{confidencePct}% Confidence</div>
+            <div className="confidence-badge">{confidencePct}% сигурност</div>
             {imageSrc ? (
               <img
                 src={imageSrc}
-                alt="Analysed plant"
+                alt="Анализирано растение"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             ) : (
               <>
                 <span style={{ fontSize: 32 }}>🍃</span>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {imageFailed ? 'Could not load authenticated image' : 'Loading analysed image…'}
+                  {imageFailed ? 'Не може да се вчита заштитената слика' : 'Се вчитува анализираната слика…'}
                 </div>
               </>
             )}
@@ -148,14 +148,14 @@ export default function Results() {
                 }
               }}
             >
-              {reportLoading ? '⏳ Exporting…' : '📄 Export PDF'}
+              {reportLoading ? '⏳ Се извезува…' : '📄 Извези PDF'}
             </button>
             <button
               className="btn btn-ghost"
               style={{ flex: 1, justifyContent: 'center' }}
               onClick={() => navigate('/history')}
             >
-              💾 View History
+              💾 Види историја
             </button>
           </div>
 
@@ -164,31 +164,31 @@ export default function Results() {
             <div className="glass-card" style={{ marginTop: 14 }}>
               <div className="weather-context">
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                  🌦 Agrometeorological Context
+                  🌦 Агрометеоролошки контекст
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8 }}>
-                  {weather.recommendation || 'Weather data recorded for this scan'}
+                  {weather.recommendation || 'Временските податоци се зачувани за ова скенирање'}
                 </div>
                 <div className="wc-grid">
                   <div className="wc-item">
                     <div className="wc-val">{risk ?? '—'}</div>
-                    <div className="wc-key">Spread risk</div>
+                    <div className="wc-key">Ризик од ширење</div>
                   </div>
                   <div className="wc-item">
                     <div className="wc-val">
                       {weather.temperature != null ? `${weather.temperature}°C` : '—'}
                     </div>
-                    <div className="wc-key">Temperature</div>
+                    <div className="wc-key">Температура</div>
                   </div>
                   <div className="wc-item">
                     <div className="wc-val">
                       {weather.humidity != null ? `${weather.humidity}%` : '—'}
                     </div>
-                    <div className="wc-key">Humidity</div>
+                    <div className="wc-key">Влажност</div>
                   </div>
                   <div className="wc-item">
                     <div className="wc-val">{weather.city || '—'}</div>
-                    <div className="wc-key">Location</div>
+                    <div className="wc-key">Локација</div>
                   </div>
                 </div>
               </div>
@@ -200,7 +200,7 @@ export default function Results() {
             <div className="glass-card" style={{ marginTop: 12 }}>
               <div style={{ padding: 16, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.7 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-                  📋 Summary for Agronomist
+                  📋 Резиме за агроном
                 </div>
                 {result.description}
               </div>
@@ -215,8 +215,8 @@ export default function Results() {
           <div className="glass-card disease-card">
             <div className="disease-name">
               {result.is_sick
-                ? `${result.diagnosis ?? 'Disease'} Detected`
-                : (result.diagnosis ?? 'Plant Healthy')}
+                ? `Откриено: ${result.diagnosis ?? 'болест'}`
+                : (result.diagnosis ?? 'Растението е здраво')}
             </div>
 
             {result.characteristics?.length > 0 && (
@@ -226,7 +226,7 @@ export default function Results() {
             {/* Confidence bar */}
             <div className="confidence-bar-wrap">
               <div className="confidence-label">
-                <span>Detection confidence</span>
+                <span>Сигурност на откривање</span>
                 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{confidencePct}%</span>
               </div>
               <div className="confidence-bar">
@@ -237,19 +237,19 @@ export default function Results() {
             {/* Tags */}
             <div className="tag-row">
               <span className={`tag ${severity.cls}`}>{severity.label}</span>
-              {risk === 'High'   && <span className="tag tag-amber">⚠ Spreading</span>}
-              {result.is_sick    && <span className="tag tag-green">✓ Treatable</span>}
+              {risk === 'Висок'   && <span className="tag tag-amber">⚠ Се шири</span>}
+              {result.is_sick    && <span className="tag tag-green">✓ Може да се третира</span>}
             </div>
           </div>
 
           {/* Treatment steps */}
           {result.treatment_steps?.length > 0 && (
             <>
-              <div className="section-label">Treatment Recommendations</div>
+              <div className="section-label">Препораки за третман</div>
               {result.treatment_steps.map((step, i) => (
                 <div key={i} className="glass-card rec-card">
                   <div className="rec-header">
-                    {STEP_ICONS[i % STEP_ICONS.length]} Step {i + 1}
+                    {STEP_ICONS[i % STEP_ICONS.length]} Чекор {i + 1}
                   </div>
                   <div className="rec-body">{step}</div>
                 </div>
@@ -260,7 +260,7 @@ export default function Results() {
           {/* Further reading */}
           {result.links?.length > 0 && (
             <div className="glass-card rec-card">
-              <div className="rec-header">🔗 Further Reading</div>
+              <div className="rec-header">🔗 Дополнително читање</div>
               <div className="rec-body" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {result.links.map((url, i) => (
                   <a

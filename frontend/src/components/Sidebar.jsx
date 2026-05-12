@@ -3,10 +3,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { getMe, logout } from '../api/auth';
 
 const navItems = [
-  { to: '/',        end: true,  icon: '⊞', label: 'Dashboard' },
-  { to: '/scan',               icon: '⊙', label: 'Scan Plant' },
-  { to: '/results',            icon: '◈', label: 'Results',  dot: true },
-  { to: '/history',            icon: '◷', label: 'History' },
+  { to: '/',        end: true,  icon: '⊞', label: 'Контролна табла' },
+  { to: '/scan',               icon: '⊙', label: 'Скенирај растение' },
+  { to: '/results',            icon: '◈', label: 'Резултати',  dot: true },
+  { to: '/history',            icon: '◷', label: 'Историја' },
 ];
 
 export default function Sidebar() {
@@ -30,10 +30,10 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="logo">
-        <div className="logo-icon">🌿</div>
+          <div className="logo-icon">🌿</div>
         <div>
           <div className="logo-text">GreenLens</div>
-          <div className="logo-sub">AI · Plant Analysis</div>
+          <div className="logo-sub">ВИ · Анализа на растенија</div>
         </div>
       </div>
 
@@ -56,12 +56,12 @@ export default function Sidebar() {
         <div className="user-pill">
           <div className="avatar">{initials}</div>
           <div>
-            <div className="user-name">{user?.username || 'Signed in'}</div>
-            <div className="user-role">{user?.email || 'GreenLens user'}</div>
+            <div className="user-name">{user?.username || 'Најавен корисник'}</div>
+            <div className="user-role">{user?.email || 'GreenLens корисник'}</div>
           </div>
         </div>
         <button className="logout-btn" type="button" onClick={handleLogout}>
-          Sign out
+          Одјави се
         </button>
       </div>
     </aside>

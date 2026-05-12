@@ -5,17 +5,18 @@ import { getScanHistory } from '../api/scans';
 import { getWeather } from '../api/weather';
 
 const DEFAULT_CITY = 'Skopje';
+const DEFAULT_CITY_LABEL = 'Скопје';
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  if (h < 21) return 'Good evening';
-  return 'Good night';
+  if (h >= 5 && h < 12) return 'Добро утро';
+  if (h < 17) return 'Добар ден';
+  if (h < 21) return 'Добра вечер';
+  return 'Добра вечер';
 }
 
 function formatDate(date) {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('mk-MK', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -24,23 +25,23 @@ function formatDate(date) {
 }
 
 function tempTrend(t) {
-  if (t > 30) return 'Hot — heat stress risk for crops';
-  if (t > 22) return 'Warm — favourable growing conditions';
-  if (t > 12) return 'Cool — reduced disease activity';
-  return 'Cold — frost risk possible';
+  if (t > 30) return 'Жешко — ризик од топлотен стрес';
+  if (t > 22) return 'Топло — поволни услови за раст';
+  if (t > 12) return 'Свежо — намалена активност на болести';
+  return 'Студено — можен ризик од мраз';
 }
 
 function humidityTrend(h) {
-  if (h > 70) return 'High — watch for fungal spread';
-  if (h > 50) return 'Moderate — watch for fungal';
-  return 'Low — low disease risk';
+  if (h > 70) return 'Висока — следете ширење на габи';
+  if (h > 50) return 'Умерена — внимавајте на габични заболувања';
+  return 'Ниска — мал ризик од болести';
 }
 
 function formatRelative(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const hours = Math.max(1, Math.round(diffMs / 3_600_000));
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
+  if (hours < 24) return `пред ${hours} ч.`;
+  return `пред ${Math.round(hours / 24)} д.`;
 }
 
 function WeatherCard({ icon, value, label, trend, loading }) {
@@ -74,7 +75,7 @@ export default function Dashboard() {
         setStatus('ready');
       })
       .catch(() => {
-        setErrorMsg('Could not load backend weather data');
+        setErrorMsg('Не може да се вчитаат временските податоци');
         setStatus('error');
       });
 
@@ -90,20 +91,20 @@ export default function Dashboard() {
 
   const tempVal  = loading ? '…' : status === 'error' || weather.temperature == null ? '—' : `${Math.round(weather.temperature)}°C`;
   const humVal   = loading ? '…' : status === 'error' || weather.humidity == null ? '—' : `${weather.humidity}%`;
-  const cityVal  = loading ? '…' : status === 'error' ? DEFAULT_CITY : weather.city;
+  const cityVal  = loading ? '…' : status === 'error' ? DEFAULT_CITY_LABEL : (weather.city === DEFAULT_CITY ? DEFAULT_CITY_LABEL : weather.city);
 
-  const tempNote  = loading ? 'Fetching weather…' : status === 'error' ? errorMsg : tempTrend(weather.temperature);
-  const humNote   = loading ? 'Fetching weather…' : status === 'error' ? '' : humidityTrend(weather.humidity);
-  const cityNote  = loading ? 'Fetching weather…' : status === 'error' ? 'Using default dashboard city' : weather.recommendation;
+  const tempNote  = loading ? 'Се вчитува времето…' : status === 'error' ? errorMsg : tempTrend(weather.temperature);
+  const humNote   = loading ? 'Се вчитува времето…' : status === 'error' ? '' : humidityTrend(weather.humidity);
+  const cityNote  = loading ? 'Се вчитува времето…' : status === 'error' ? 'Се користи стандардниот град' : weather.recommendation;
 
   return (
     <div>
       <div className="page-header">
         <div className="page-title">
-          {getGreeting()}, <span>{user?.username || 'there'}</span>
+          {getGreeting()}, <span>{user?.username || 'кориснику'}</span>
         </div>
         <div className="page-sub">
-          Here's your field overview for today · {formatDate(new Date())}
+          Преглед на вашите насади за денес · {formatDate(new Date())}
         </div>
       </div>
 
@@ -113,24 +114,24 @@ export default function Dashboard() {
           {/* Hero banner */}
           <div className="hero-banner glass-card">
             <div className="hero-title">
-              AI-powered plant <em>disease detection</em>
+              Откривање <em>болести кај растенија</em> со ВИ
             </div>
             <div className="hero-desc">
-              Upload a photo of your crops and get instant diagnosis, treatment
-              recommendations, and weather-aware insights — all in under 10 seconds.
+              Прикачете фотографија од вашите култури и добијте брза дијагноза,
+              препораки за третман и временски контекст.
             </div>
             <div className="hero-actions">
-              <Link to="/scan" className="btn btn-primary">🌿 Scan a Plant</Link>
-              <Link to="/history" className="btn btn-ghost">View History</Link>
+              <Link to="/scan" className="btn btn-primary">🌿 Скенирај растение</Link>
+              <Link to="/history" className="btn btn-ghost">Види историја</Link>
             </div>
           </div>
 
           {/* Weather cards */}
-          <div className="section-label">Backend Weather Conditions</div>
+          <div className="section-label">Временски услови</div>
           <div className="grid-3" style={{ marginBottom: 16 }}>
-            <WeatherCard icon="🌡" value={tempVal} label="Temperature" trend={tempNote} loading={loading} />
-            <WeatherCard icon="💧" value={humVal}  label="Humidity"    trend={humNote}  loading={loading} />
-            <WeatherCard icon="📍" value={cityVal} label="Location" trend={cityNote} loading={loading} />
+            <WeatherCard icon="🌡" value={tempVal} label="Температура" trend={tempNote} loading={loading} />
+            <WeatherCard icon="💧" value={humVal}  label="Влажност"    trend={humNote}  loading={loading} />
+            <WeatherCard icon="📍" value={cityVal} label="Локација" trend={cityNote} loading={loading} />
           </div>
 
           {/* Scan CTA */}
@@ -142,9 +143,9 @@ export default function Dashboard() {
             onKeyDown={e => e.key === 'Enter' && navigate('/scan')}
           >
             <span className="scan-cta-icon">📸</span>
-            <div className="scan-cta-title">Click to Scan Your Plant</div>
+            <div className="scan-cta-title">Кликнете за скенирање растение</div>
             <div className="scan-cta-sub">
-              Drag &amp; drop or click to upload a photo for instant AI analysis
+              Повлечете фотографија или кликнете за ВИ анализа
             </div>
           </div>
         </div>
@@ -152,22 +153,22 @@ export default function Dashboard() {
         {/* ── Right column ── */}
         <div style={{ animation: 'fadeUp 0.5s 0.35s ease both', opacity: 0 }}>
           <div className="ad-box">
-            <div className="ad-label">Sponsored</div>
-            <div className="ad-content">Advertisement</div>
+            <div className="ad-label">Спонзорирано</div>
+            <div className="ad-content">Реклама</div>
           </div>
 
           <div className="glass-card" style={{ marginTop: 14 }}>
             <div style={{ padding: 16 }}>
               <div className="section-label" style={{ marginBottom: 10 }}>
-                Recent Activity
+                Последна активност
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 2 }}>
-                {recentStatus === 'fetching' && <div>Loading scans…</div>}
-                {recentStatus === 'error' && <div>Could not load recent scans.</div>}
-                {recentStatus === 'ready' && recentScans.length === 0 && <div>No scans yet.</div>}
+                {recentStatus === 'fetching' && <div>Се вчитуваат скенирања…</div>}
+                {recentStatus === 'error' && <div>Не може да се вчитаат последните скенирања.</div>}
+                {recentStatus === 'ready' && recentScans.length === 0 && <div>Сè уште нема скенирања.</div>}
                 {recentStatus === 'ready' && recentScans.map(scan => (
                   <div key={scan.id}>
-                    {scan.is_sick ? '🔴' : '🟢'} {scan.diagnosis || 'Scan'} · {formatRelative(scan.created_at)}
+                    {scan.is_sick ? '🔴' : '🟢'} {scan.diagnosis || 'Скенирање'} · {formatRelative(scan.created_at)}
                   </div>
                 ))}
               </div>

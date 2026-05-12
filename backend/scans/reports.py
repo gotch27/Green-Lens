@@ -110,32 +110,32 @@ def build_scan_report(scan) -> bytes:
         set_font(font_name, 11)
 
     result = scan.result
-    pdf.setTitle(f"GreenLens Scan #{scan.id}")
+    pdf.setTitle(f"GreenLens скенирање #{scan.id}")
     set_font(font_bold, 16)
-    line(f"GreenLens Scan Report #{scan.id}", 1)
+    line(f"GreenLens извештај за скенирање #{scan.id}", 1)
 
     set_font(font_name, 11)
-    line(f"Status: {'Sick' if result.is_sick else 'Healthy'}")
-    line(f"Diagnosis: {result.diagnosis or 'None'}")
-    line(f"City: {scan.city or 'N/A'}")
-    line(f"Scanned at: {timezone.localtime(scan.scanned_at).strftime('%Y-%m-%d %H:%M')}")
+    line(f"Статус: {'Болно' if result.is_sick else 'Здраво'}")
+    line(f"Дијагноза: {result.diagnosis or 'Нема'}")
+    line(f"Град: {scan.city or 'Нема податок'}")
+    line(f"Скенирано на: {timezone.localtime(scan.scanned_at).strftime('%Y-%m-%d %H:%M')}")
 
     if scan.temperature is not None and scan.humidity is not None:
-        line(f"Weather: {scan.temperature:g} C, {scan.humidity}% humidity")
-        line(f"Weather recommendation: {scan.weather_recommendation}")
+        line(f"Време: {scan.temperature:g} C, {scan.humidity}% влажност")
+        line(f"Временска препорака: {scan.weather_recommendation}")
 
-    section("Description:")
-    line(result.description or "N/A")
+    section("Опис:")
+    line(result.description or "Нема податок")
 
-    section("Characteristics:")
+    section("Карактеристики:")
     for item in result.characteristics:
         line(f"- {item}")
 
-    section("Treatment steps:")
+    section("Чекори за третман:")
     for item in result.treatment_steps:
         line(f"- {item}")
 
-    section("Links:")
+    section("Линкови:")
     for item in result.links:
         line(f"- {item}")
 

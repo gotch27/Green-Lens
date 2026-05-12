@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyzePlant } from '../api/scans';
+import { getApiErrorMessage } from '../utils/apiErrors';
 
 function readAsDataURL(file) {
   return new Promise((resolve, reject) => {
@@ -16,7 +17,7 @@ export default function ScanPlant() {
   const inputRef   = useRef(null);
 
   const [file,     setFile]     = useState(null);
-  const [city,     setCity]     = useState('Skopje');
+  const [city,     setCity]     = useState('Скопје');
   const [preview,  setPreview]  = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [loading,  setLoading]  = useState(false);
@@ -24,11 +25,11 @@ export default function ScanPlant() {
 
   const acceptFile = useCallback(async (f) => {
     if (!f || !f.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPG, PNG, or WEBP).');
+      setError('Изберете валидна слика (JPG, PNG или WEBP).');
       return;
     }
     if (f.size > 5 * 1024 * 1024) {
-      setError('Image exceeds the 5 MB limit. Please choose a smaller file.');
+      setError('Сликата го надминува лимитот од 5 MB. Изберете помала датотека.');
       return;
     }
     setError('');
@@ -63,10 +64,7 @@ export default function ScanPlant() {
       const result = await analyzePlant(file, city);
       navigate('/results', { state: { result } });
     } catch (err) {
-      const msg = err.response?.data?.error
-        ?? err.response?.data?.detail
-        ?? 'Analysis failed. Please try again.';
-      setError(msg);
+      setError(getApiErrorMessage(err, 'Анализата не успеа. Обидете се повторно.'));
       setLoading(false);
     }
   }
@@ -76,8 +74,8 @@ export default function ScanPlant() {
   return (
     <div>
       <div className="page-header">
-        <div className="page-title">Scan <span>Plant</span></div>
-        <div className="page-sub">Upload a plant photo for AI-powered disease analysis</div>
+        <div className="page-title">Скенирај <span>растение</span></div>
+        <div className="page-sub">Прикачете фотографија за ВИ анализа на болести</div>
       </div>
 
       <div className="scan-layout">
@@ -95,12 +93,12 @@ export default function ScanPlant() {
               {file ? '✅' : '🌿'}
             </span>
             <div className="upload-title">
-              {file ? file.name : 'Drop your plant photo here'}
+              {file ? file.name : 'Пуштете ја фотографијата тука'}
             </div>
             <div className="upload-sub">
               {file
-                ? `${(file.size / 1024 / 1024).toFixed(1)} MB · ready to analyse`
-                : <>Supports JPG, PNG, WEBP · Max 5 MB<br />For best results, photograph in natural daylight</>
+                ? `${(file.size / 1024 / 1024).toFixed(1)} MB · подготвено за анализа`
+                : <>Поддржува JPG, PNG, WEBP · Макс. 5 MB<br />За најдобри резултати, фотографирајте на природна светлина</>
               }
             </div>
             <div className="upload-btn-area">
@@ -109,7 +107,7 @@ export default function ScanPlant() {
                 disabled={loading}
                 onClick={e => { e.stopPropagation(); inputRef.current.click(); }}
               >
-                📁 Browse Files
+                📁 Избери датотека
               </button>
             </div>
           </div>
@@ -123,13 +121,13 @@ export default function ScanPlant() {
           />
 
           <div className="scan-field glass-card">
-            <label htmlFor="scan-city">City for weather context</label>
+            <label htmlFor="scan-city">Град за временски контекст</label>
             <input
               id="scan-city"
               type="text"
               value={city}
               onChange={e => setCity(e.target.value)}
-              placeholder="Skopje"
+              placeholder="Скопје"
               disabled={loading}
             />
           </div>
@@ -152,12 +150,12 @@ export default function ScanPlant() {
 
         {/* ── Right: preview + analyse ── */}
         <div>
-          <div className="section-label" style={{ marginBottom: 10 }}>Image Preview</div>
+          <div className="section-label" style={{ marginBottom: 10 }}>Преглед на слика</div>
 
           <div className="preview-box glass-card" style={{ height: 220, position: 'relative' }}>
             {preview ? (
               <>
-                <img src={preview} alt="Plant preview" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img src={preview} alt="Преглед на растение" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 {loading && (
                   <div style={{
                     position: 'absolute', inset: 0,
@@ -168,13 +166,13 @@ export default function ScanPlant() {
                   }}>
                     <Spinner />
                     <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
-                      Analysing…
+                      Се анализира…
                     </span>
                   </div>
                 )}
               </>
             ) : (
-              <span>No image selected</span>
+              <span>Нема избрана слика</span>
             )}
           </div>
 
@@ -191,7 +189,7 @@ export default function ScanPlant() {
               disabled={!file || loading}
               onClick={handleAnalyze}
             >
-              {loading ? '⏳ Analysing…' : '🔬 Analyse Plant'}
+              {loading ? '⏳ Се анализира…' : '🔬 Анализирај растение'}
             </button>
           </div>
 
@@ -199,12 +197,12 @@ export default function ScanPlant() {
             <div className="glass-card" style={{ padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.8 }}>
                 <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: 6, fontSize: 12 }}>
-                  📷 Good photo tips
+                  📷 Совети за добра фотографија
                 </div>
-                <div>✓ Fill frame with affected area</div>
-                <div>✓ Use natural daylight</div>
-                <div>✓ Avoid blurry or dark shots</div>
-                <div>✓ Include both sides of leaf</div>
+                <div>✓ Пополнете ја рамката со погодената област</div>
+                <div>✓ Користете природна светлина</div>
+                <div>✓ Избегнувајте матни или темни фотографии</div>
+                <div>✓ Вклучете ги двете страни на листот</div>
               </div>
             </div>
           </div>
