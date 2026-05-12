@@ -6,6 +6,7 @@ const ERROR_TRANSLATIONS = {
   'Unable to create user.': 'Не може да се креира корисник.',
   'Invalid image format.': 'Невалиден формат на слика.',
   'Image size too large.': 'Сликата е преголема.',
+  'The uploaded image does not appear to contain a plant. Please upload a clear plant photo.': 'Сликата не изгледа како растение. Прикачете јасна фотографија од растение.',
   'ML service unavailable.': 'Сервисот за анализа моментално не е достапен.',
   'Scan not found.': 'Скенирањето не е пронајдено.',
   'Scan image not found.': 'Сликата од скенирањето не е пронајдена.',

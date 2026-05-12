@@ -284,6 +284,8 @@ def retry_scan(request, scan_id):
     try:
         scan.image.open("rb")
         ml_payload = ml_client.analyze_image(scan.image)
+    except ml_client.InvalidPlantImage as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
     except ml_client.MLServiceUnavailable:
         return Response({"error": "ML service unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     except ml_client.InvalidMLResponse:
@@ -343,6 +345,8 @@ def create_scan(request):
 
     try:
         ml_payload = ml_client.analyze_image(image)
+    except ml_client.InvalidPlantImage as exc:
+        return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
     except ml_client.MLServiceUnavailable:
         return Response({"error": "ML service unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     except ml_client.InvalidMLResponse:

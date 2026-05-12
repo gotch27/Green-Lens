@@ -9,6 +9,12 @@ from services.web_search_service import search_disease_links
 
 load_dotenv()
 
+NON_PLANT_MESSAGE = "Сликата не изгледа како растение. Прикачете јасна фотографија од растение."
+
+
+class NonPlantImageError(ValueError):
+    pass
+
 
 def get_openai_client():
     api_key = os.getenv("OPENAI_API_KEY")
@@ -19,7 +25,7 @@ def get_openai_client():
     return OpenAI(api_key=api_key)
 
 
-def analyze_plant_image(image_bytes, prompt_text):
+def analyze_plant_image(image_bytes, prompt_text, content_type="image/jpeg"):
     base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
     response = get_openai_client().responses.parse(
@@ -38,7 +44,7 @@ def analyze_plant_image(image_bytes, prompt_text):
                     },
                     {
                         "type": "input_image",
-                        "image_url": f"data:image/jpeg;base64,{base64_image}"
+                        "image_url": f"data:{content_type};base64,{base64_image}"
                     }
                 ]
             }
@@ -48,10 +54,14 @@ def analyze_plant_image(image_bytes, prompt_text):
 
     result = response.output_parsed.model_dump()
 
-    diagnosis = result.get("diagnosis")
+    if not result.get("is_plant"):
+        raise NonPlantImageError(result.get("non_plant_reason") or NON_PLANT_MESSAGE)
 
+    diagnosis = result.get("diagnosis") if result.get("is_sick") else None
     real_links = search_disease_links(diagnosis)
 
     result["links"] = real_links
+    result.pop("is_plant", None)
+    result.pop("non_plant_reason", None)
 
     return result

@@ -97,12 +97,17 @@ export default function Results() {
   const severity      = severityTag(result.is_sick, result.confidence);
   const weather       = result.weather ?? null;
   const risk          = spreadRisk(weather);
+  const isHealthy     = result.is_sick === false;
 
   return (
     <div>
       <div className="page-header">
         <div className="page-title">Резултати од <span>дијагноза</span></div>
-        <div className="page-sub">ВИ проценка, препораки за третман и временски контекст</div>
+        <div className="page-sub">
+          {isHealthy
+            ? 'ВИ проценка, препораки за нега и временски контекст'
+            : 'ВИ проценка, препораки за третман и временски контекст'}
+        </div>
       </div>
 
       <div className="results-grid">
@@ -216,7 +221,7 @@ export default function Results() {
             <div className="disease-name">
               {result.is_sick
                 ? `Откриено: ${result.diagnosis ?? 'болест'}`
-                : (result.diagnosis ?? 'Растението е здраво')}
+                : (result.diagnosis ?? 'Растението изгледа здраво')}
             </div>
 
             {result.characteristics?.length > 0 && (
@@ -226,7 +231,7 @@ export default function Results() {
             {/* Confidence bar */}
             <div className="confidence-bar-wrap">
               <div className="confidence-label">
-                <span>Сигурност на откривање</span>
+                <span>{isHealthy ? 'Сигурност на проценка' : 'Сигурност на откривање'}</span>
                 <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{confidencePct}%</span>
               </div>
               <div className="confidence-bar">
@@ -245,11 +250,13 @@ export default function Results() {
           {/* Treatment steps */}
           {result.treatment_steps?.length > 0 && (
             <>
-              <div className="section-label">Препораки за третман</div>
+              <div className="section-label">
+                {isHealthy ? 'Препораки за нега и следење' : 'Препораки за третман'}
+              </div>
               {result.treatment_steps.map((step, i) => (
                 <div key={i} className="glass-card rec-card">
                   <div className="rec-header">
-                    {STEP_ICONS[i % STEP_ICONS.length]} Чекор {i + 1}
+                    {STEP_ICONS[i % STEP_ICONS.length]} {isHealthy ? 'Препорака' : 'Чекор'} {i + 1}
                   </div>
                   <div className="rec-body">{step}</div>
                 </div>

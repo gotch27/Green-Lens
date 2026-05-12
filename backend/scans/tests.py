@@ -13,7 +13,7 @@ from PIL import Image
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from . import ml_client
-from .ml_client import MLServiceUnavailable
+from .ml_client import InvalidPlantImage, MLServiceUnavailable
 from .models import GoogleAccount, Result, Scan
 
 User = get_user_model()
@@ -76,6 +76,18 @@ class MLClientTests(TestCase):
 
         files = post.call_args.kwargs["files"]
         self.assertEqual(files["image"][2], "image/jpeg")
+
+    @patch("scans.ml_client.requests.post")
+    def test_analyze_image_rejects_non_plant_response(self, post):
+        response = Mock()
+        response.status_code = 422
+        response.json.return_value = {"detail": "Сликата не изгледа како растение."}
+        post.return_value = response
+        image_file = BytesIO(b"fake image bytes")
+        image_file.name = "scans/photo.jpg"
+
+        with self.assertRaisesMessage(InvalidPlantImage, "Сликата не изгледа како растение."):
+            ml_client.analyze_image(image_file)
 
 
 @override_settings(MEDIA_ROOT=TEST_MEDIA_ROOT)
@@ -165,6 +177,21 @@ class ScanApiTests(TestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json(), {"error": "ML service unavailable."})
+
+    @patch("scans.views.ml_client.analyze_image")
+    def test_create_scan_rejects_non_plant_without_saving_scan(self, analyze_image):
+        user = User.objects.create_user(username="owner", email="owner@example.com", password="password123")
+        analyze_image.side_effect = InvalidPlantImage("Сликата не изгледа како растение.")
+
+        response = self.client.post(
+            "/api/scans/",
+            {"image": image_upload(), "city": "Skopje"},
+            **self.auth_headers(user),
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": "Сликата не изгледа како растение."})
+        self.assertFalse(Scan.objects.exists())
 
     def test_history_returns_compact_payload(self):
         user = User.objects.create_user(username="owner", email="owner@example.com", password="password123")
