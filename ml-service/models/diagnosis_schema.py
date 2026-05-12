@@ -3,6 +3,7 @@ from typing import List, Optional
 
 
 class PlantDiagnosis(BaseModel):
+    is_plant: bool
     is_sick: bool
     diagnosis: Optional[str]
     description: str
@@ -10,3 +11,4 @@ class PlantDiagnosis(BaseModel):
     treatment_steps: List[str]
     links: List[str]
     confidence: float
+    message: str
