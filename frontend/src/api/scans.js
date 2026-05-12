@@ -18,9 +18,10 @@ import client from './client';
  * Sends as multipart/form-data — do NOT set Content-Type manually,
  * axios will set the correct boundary automatically.
  */
-export async function analyzePlant(imageFile) {
+export async function analyzePlant(imageFile, city = '') {
   const form = new FormData();
   form.append('image', imageFile);
+  if (city.trim()) form.append('city', city.trim());
   const { data } = await client.post('/api/scans/', form);
   return data;
 }
@@ -50,4 +51,21 @@ export async function deleteScan(id) {
 export async function retryScan(id) {
   const { data } = await client.post(`/api/scans/${id}/retry/`);
   return data;
+}
+
+export async function getScanImageBlob(imageUrl) {
+  const { data } = await client.get(imageUrl, { responseType: 'blob' });
+  return data;
+}
+
+export async function downloadScanReport(id) {
+  const { data } = await client.get(`/api/scans/${id}/report/`, { responseType: 'blob' });
+  const url = URL.createObjectURL(data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `greenlens-scan-${id}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

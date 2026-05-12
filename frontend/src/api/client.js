@@ -16,7 +16,7 @@ import axios from 'axios';
 const ACCESS_KEY  = 'gl_access';
 const REFRESH_KEY = 'gl_refresh';
 
-// Shared axios instance — no baseURL so Vite's proxy handles /api and /media routes.
+// Shared axios instance — no baseURL so Vite's proxy handles /api routes.
 const client = axios.create();
 
 // ── Request interceptor ────────────────────────────────────────────────────

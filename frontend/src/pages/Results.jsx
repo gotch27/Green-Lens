@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { downloadScanReport, getScanImageBlob } from '../api/scans';
 
 // Icons cycled across treatment steps (list[str], no titles from ML)
 const STEP_ICONS = ['🧪', '✂️', '🌱', '💊', '🔬', '📋'];
@@ -21,13 +22,6 @@ function spreadRisk(weather) {
   if (weather.humidity > 70 && (weather.temperature ?? 0) > 18) return 'High';
   if (weather.humidity > 50) return 'Moderate';
   return 'Low';
-}
-
-function resolveImageUrl(rawUrl) {
-  if (!rawUrl) return null;
-  // Relative paths (e.g. /media/scans/…) go through the Vite proxy — return as-is.
-  // Absolute URLs (http/https) are returned unchanged.
-  return rawUrl;
 }
 
 // ── Empty state ──────────────────────────────────────────────────────────────
@@ -55,6 +49,9 @@ export default function Results() {
   const navigate   = useNavigate();
   const barRef     = useRef(null);
   const result     = state?.result;
+  const [imageSrc, setImageSrc] = useState(null);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   // Animate confidence bar on mount
   useEffect(() => {
@@ -65,10 +62,38 @@ export default function Results() {
     return () => clearTimeout(id);
   }, [result]);
 
+  useEffect(() => {
+    if (!result?.image_url) {
+      setImageSrc(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let objectUrl = null;
+    setImageFailed(false);
+
+    getScanImageBlob(result.image_url)
+      .then(blob => {
+        objectUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        setImageSrc(objectUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setImageFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [result?.image_url]);
+
   if (!result) return <NoResult />;
 
   const confidencePct = pct(result.confidence);
-  const imageUrl      = resolveImageUrl(result.image_url);
   const severity      = severityTag(result.is_sick, result.confidence);
   const weather       = result.weather ?? null;
   const risk          = spreadRisk(weather);
@@ -91,16 +116,18 @@ export default function Results() {
             style={{ height: 260, flexDirection: 'column', gap: 8 }}
           >
             <div className="confidence-badge">{confidencePct}% Confidence</div>
-            {imageUrl ? (
+            {imageSrc ? (
               <img
-                src={imageUrl}
+                src={imageSrc}
                 alt="Analysed plant"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
             ) : (
               <>
                 <span style={{ fontSize: 32 }}>🍃</span>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Analysed image appears here</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {imageFailed ? 'Could not load authenticated image' : 'Loading analysed image…'}
+                </div>
               </>
             )}
           </div>
@@ -110,9 +137,18 @@ export default function Results() {
             <button
               className="btn btn-ghost"
               style={{ flex: 1, justifyContent: 'center' }}
-              onClick={() => window.print()}
+              disabled={reportLoading || !result.id}
+              onClick={async () => {
+                if (!result.id || reportLoading) return;
+                setReportLoading(true);
+                try {
+                  await downloadScanReport(result.id);
+                } finally {
+                  setReportLoading(false);
+                }
+              }}
             >
-              📄 Export PDF
+              {reportLoading ? '⏳ Exporting…' : '📄 Export PDF'}
             </button>
             <button
               className="btn btn-ghost"

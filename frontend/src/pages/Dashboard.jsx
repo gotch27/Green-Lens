@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getMe } from '../api/auth';
+import { getScanHistory } from '../api/scans';
+import { getWeather } from '../api/weather';
+
+const DEFAULT_CITY = 'Skopje';
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -31,21 +36,11 @@ function humidityTrend(h) {
   return 'Low — low disease risk';
 }
 
-function rainTrend(p) {
-  if (p > 60) return 'Heavy rain likely today';
-  if (p > 25) return 'Showers possible';
-  return 'Dry conditions';
-}
-
-async function fetchWeather(lat, lon) {
-  const params = new URLSearchParams({
-    latitude: lat,
-    longitude: lon,
-    current: 'temperature_2m,relative_humidity_2m,precipitation_probability',
-  });
-  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-  if (!res.ok) throw new Error(`Weather API error ${res.status}`);
-  return res.json();
+function formatRelative(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const hours = Math.max(1, Math.round(diffMs / 3_600_000));
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }
 
 function WeatherCard({ icon, value, label, trend, loading }) {
@@ -63,51 +58,49 @@ function WeatherCard({ icon, value, label, trend, loading }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [weather, setWeather] = useState(null);
-  const [status, setStatus] = useState('locating'); // locating | fetching | ready | error
+  const [recentScans, setRecentScans] = useState([]);
+  const [status, setStatus] = useState('fetching'); // fetching | ready | error
+  const [recentStatus, setRecentStatus] = useState('fetching');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setErrorMsg('Geolocation not supported by this browser');
-      setStatus('error');
-      return;
-    }
+    getMe().then(setUser).catch(() => {});
 
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        setStatus('fetching');
-        try {
-          const data = await fetchWeather(coords.latitude, coords.longitude);
-          setWeather(data.current);
-          setStatus('ready');
-        } catch {
-          setErrorMsg('Could not load weather data');
-          setStatus('error');
-        }
-      },
-      () => {
-        setErrorMsg('Location access denied — enable it to see live weather');
+    getWeather(DEFAULT_CITY)
+      .then(data => {
+        setWeather(data);
+        setStatus('ready');
+      })
+      .catch(() => {
+        setErrorMsg('Could not load backend weather data');
         setStatus('error');
-      },
-    );
+      });
+
+    getScanHistory()
+      .then(data => {
+        setRecentScans(data.slice(0, 4));
+        setRecentStatus('ready');
+      })
+      .catch(() => setRecentStatus('error'));
   }, []);
 
-  const loading = status === 'locating' || status === 'fetching';
+  const loading = status === 'fetching';
 
-  const tempVal  = loading ? '…' : status === 'error' ? '—' : `${Math.round(weather.temperature_2m)}°C`;
-  const humVal   = loading ? '…' : status === 'error' ? '—' : `${weather.relative_humidity_2m}%`;
-  const rainVal  = loading ? '…' : status === 'error' ? '—' : `${weather.precipitation_probability}%`;
+  const tempVal  = loading ? '…' : status === 'error' || weather.temperature == null ? '—' : `${Math.round(weather.temperature)}°C`;
+  const humVal   = loading ? '…' : status === 'error' || weather.humidity == null ? '—' : `${weather.humidity}%`;
+  const cityVal  = loading ? '…' : status === 'error' ? DEFAULT_CITY : weather.city;
 
-  const tempNote  = loading ? 'Fetching location…' : status === 'error' ? errorMsg : tempTrend(weather.temperature_2m);
-  const humNote   = loading ? 'Fetching location…' : status === 'error' ? '' : humidityTrend(weather.relative_humidity_2m);
-  const rainNote  = loading ? 'Fetching location…' : status === 'error' ? '' : rainTrend(weather.precipitation_probability);
+  const tempNote  = loading ? 'Fetching weather…' : status === 'error' ? errorMsg : tempTrend(weather.temperature);
+  const humNote   = loading ? 'Fetching weather…' : status === 'error' ? '' : humidityTrend(weather.humidity);
+  const cityNote  = loading ? 'Fetching weather…' : status === 'error' ? 'Using default dashboard city' : weather.recommendation;
 
   return (
     <div>
       <div className="page-header">
         <div className="page-title">
-          {getGreeting()}, <span>Agronomist</span>
+          {getGreeting()}, <span>{user?.username || 'there'}</span>
         </div>
         <div className="page-sub">
           Here's your field overview for today · {formatDate(new Date())}
@@ -133,11 +126,11 @@ export default function Dashboard() {
           </div>
 
           {/* Weather cards */}
-          <div className="section-label">Live Weather Conditions</div>
+          <div className="section-label">Backend Weather Conditions</div>
           <div className="grid-3" style={{ marginBottom: 16 }}>
             <WeatherCard icon="🌡" value={tempVal} label="Temperature" trend={tempNote} loading={loading} />
             <WeatherCard icon="💧" value={humVal}  label="Humidity"    trend={humNote}  loading={loading} />
-            <WeatherCard icon="🌧" value={rainVal} label="Rain Chance" trend={rainNote} loading={loading} />
+            <WeatherCard icon="📍" value={cityVal} label="Location" trend={cityNote} loading={loading} />
           </div>
 
           {/* Scan CTA */}
@@ -169,10 +162,14 @@ export default function Dashboard() {
                 Recent Activity
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 2 }}>
-                <div>🟢 Tomato scanned · 2h ago</div>
-                <div>🟡 Wheat analyzed · 1d ago</div>
-                <div>🔴 Blight detected · 3d ago</div>
-                <div>🟢 Corn healthy · 5d ago</div>
+                {recentStatus === 'fetching' && <div>Loading scans…</div>}
+                {recentStatus === 'error' && <div>Could not load recent scans.</div>}
+                {recentStatus === 'ready' && recentScans.length === 0 && <div>No scans yet.</div>}
+                {recentStatus === 'ready' && recentScans.map(scan => (
+                  <div key={scan.id}>
+                    {scan.is_sick ? '🔴' : '🟢'} {scan.diagnosis || 'Scan'} · {formatRelative(scan.created_at)}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

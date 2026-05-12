@@ -16,6 +16,7 @@ export default function ScanPlant() {
   const inputRef   = useRef(null);
 
   const [file,     setFile]     = useState(null);
+  const [city,     setCity]     = useState('Skopje');
   const [preview,  setPreview]  = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [loading,  setLoading]  = useState(false);
@@ -26,8 +27,8 @@ export default function ScanPlant() {
       setError('Please select a valid image file (JPG, PNG, or WEBP).');
       return;
     }
-    if (f.size > 20 * 1024 * 1024) {
-      setError('Image exceeds the 20 MB limit. Please choose a smaller file.');
+    if (f.size > 5 * 1024 * 1024) {
+      setError('Image exceeds the 5 MB limit. Please choose a smaller file.');
       return;
     }
     setError('');
@@ -59,7 +60,7 @@ export default function ScanPlant() {
     setError('');
     setLoading(true);
     try {
-      const result = await analyzePlant(file);
+      const result = await analyzePlant(file, city);
       navigate('/results', { state: { result } });
     } catch (err) {
       const msg = err.response?.data?.error
@@ -99,7 +100,7 @@ export default function ScanPlant() {
             <div className="upload-sub">
               {file
                 ? `${(file.size / 1024 / 1024).toFixed(1)} MB · ready to analyse`
-                : <>Supports JPG, PNG, WEBP · Max 20 MB<br />For best results, photograph in natural daylight</>
+                : <>Supports JPG, PNG, WEBP · Max 5 MB<br />For best results, photograph in natural daylight</>
               }
             </div>
             <div className="upload-btn-area">
@@ -121,10 +122,16 @@ export default function ScanPlant() {
             onChange={handleInputChange}
           />
 
-          <div className="settings-row">
-            <div className="setting-chip">⚙️ Scan Settings</div>
-            <div className="setting-chip">💡 Photo Tips</div>
-            <div className="setting-chip">🔬 Analysis Mode: Standard</div>
+          <div className="scan-field glass-card">
+            <label htmlFor="scan-city">City for weather context</label>
+            <input
+              id="scan-city"
+              type="text"
+              value={city}
+              onChange={e => setCity(e.target.value)}
+              placeholder="Skopje"
+              disabled={loading}
+            />
           </div>
 
           {error && (
