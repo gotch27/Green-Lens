@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from django.urls import reverse
-
-
 def image_url(request, scan) -> str:
     if not scan.image:
         return ""
-
-    path = reverse("scan-image", kwargs={"scan_id": scan.id})
-    return request.build_absolute_uri(path) if request is not None else path
+    # Use /media/ URL so <img> tags can load without needing auth headers.
+    return scan.image.url
 
 
 def weather_payload(scan) -> dict | None:

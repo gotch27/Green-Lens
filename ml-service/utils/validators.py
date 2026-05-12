@@ -1,6 +1,6 @@
 from fastapi import UploadFile, HTTPException
 
-ALLOWED_TYPES = ["image/jpeg", "image/png"]
+ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
