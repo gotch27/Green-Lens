@@ -7,8 +7,7 @@ def image_url(request, scan) -> str:
     if not scan.image:
         return ""
 
-    path = reverse("scan-image", kwargs={"scan_id": scan.id})
-    return request.build_absolute_uri(path) if request is not None else path
+    return reverse("scan-image", kwargs={"scan_id": scan.id})
 
 
 def weather_payload(scan) -> dict | None:
